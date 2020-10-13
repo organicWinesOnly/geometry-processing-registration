@@ -26,6 +26,8 @@ void point_to_plane_rigid_matching(
   Eigen::Matrix3d & R,
   Eigen::RowVector3d & t)
 {
+  // Allowable convergence error
+  double error = 0.1;
   // Build the LS problem
   // Build the A matrix
   Eigen::MatrixXd A(6, 6);
@@ -33,26 +35,43 @@ void point_to_plane_rigid_matching(
   A.setZero();
   b.setZero();
 
-  for (int i = 0; i < X.rows(); i++)
+  Eigen::MatrixXd prev_X;
+  Eigen::MatrixXd current_X;
+  prev_X.resizeLike(X);
+  prev_X.setZero();
+  current_X = X;
+
+  while ((current_X - prev_X).norm() < error )
   {
-    Eigen::VectorXd temp_vec(6);
-    Eigen::RowVector3d x_i = X.row(i);
-    Eigen::RowVector3d n_i = N.row(i);
+    for (int i = 0; i < X.rows(); i++)
+    {
+      Eigen::VectorXd temp_vec(6);
+      Eigen::RowVector3d x_i = current_X.row(i);
+      Eigen::RowVector3d n_i = N.row(i);
 
-    temp_vec.head(3) = x_i.transpose().cross(n_i.transpose());
-    temp_vec.tail(3) = n_i.transpose();
-    Eigen::Vector3d diff = (P.row(i) - x_i).transpose();
+      temp_vec.head(3) = x_i.transpose().cross(n_i.transpose());
+      temp_vec.tail(3) = n_i.transpose();
+      Eigen::Vector3d diff = (P.row(i) - x_i).transpose();
 
-    A += temp_vec * temp_vec.transpose();
-    b += temp_vec * N.row(i) * diff;
+      A += temp_vec * temp_vec.transpose();
+      b += temp_vec * N.row(i) * diff;
+    }
+
+    // Solve least squares
+    Eigen::VectorXd u(6);
+    u = A.bdcSvd(Eigen::ComputeFullU| Eigen::ComputeFullV).solve(b);
+
+    // Update parameters
+    t = u.tail(3).transpose();
+    double theta_new = u.head(3).norm();
+    Eigen::Vector3d omega_new = u.head(3) / theta_new;
+    AxisAngle(omega_new, theta_new, R);
+    
+    // Update X
+    prev_X = X;
+    for (int j = 0; j < X.rows(); j++)
+    {
+      current_X.row(j) = (R * current_X.row(j).transpose()).transpose() + t;
+    }
   }
-
-  // Solve least squares
-  Eigen::VectorXd u(6);
-  u = A.bdcSvd(Eigen::ComputeFullU| Eigen::ComputeFullV).solve(b);
-
-  // Update parameters
-  t = u.tail(3).transpose();
-  double theta_new = u.head(3).norm();
-  Eigen::Vector3d omega_new = u.head(3) / theta_new;
 }
