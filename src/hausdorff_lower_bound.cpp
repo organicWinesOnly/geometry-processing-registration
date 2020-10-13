@@ -12,7 +12,8 @@ double hausdorff_lower_bound(
   // Build a set of points X
   Eigen::MatrixXd X(n, 3);
 
-  random_points_on_mesh(n, VX, FY, X);
+  // Sample mesh
+  random_points_on_mesh(n, VX, FX, X);
   // Find all the distances using point mesh distance function
   Eigen::VectorXd distance;
   Eigen::MatrixXd closest_pts;
