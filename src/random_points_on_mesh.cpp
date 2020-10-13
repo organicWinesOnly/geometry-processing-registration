@@ -44,7 +44,7 @@ void random_points_on_mesh(
   {
     for (int j = 0; j < cum_sum.rows(); j++)
     {
-      if (a_vec(i, 1) > cum_sum(j))
+      if (a_vec(i, 1) < cum_sum(j))
       {
 	random_triangle.row(i) << V.row(F(j, 0)), V.row(F(j, 1)), V.row(F(j, 2));
 	break;
@@ -66,6 +66,5 @@ void random_points_on_mesh(
 
 
   X = v1.array() + a1.array() * (v2 - v1).array() + a2.array() * (v3 - v1).array();
-  // X = v1.array() + (v2 - v1).array();// + a_vec.col(1).array() * (v3 - v1).array();
 }
 
