@@ -20,7 +20,7 @@ void point_to_point_rigid_matching(
     x_bar.row(i) = X.row(i) - x_centroid;
   }
   
-  // Copute covarience, M
+  // Compute covarience, M
   Eigen::Matrix3d M = p_bar.transpose() * x_bar;
 
   // Use closesnt relation function to compute the optimal R

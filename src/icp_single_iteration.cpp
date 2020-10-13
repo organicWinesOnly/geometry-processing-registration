@@ -35,4 +35,5 @@ void icp_single_iteration(
   {
     point_to_plane_rigid_matching(X, P, N, R, t);
   }
+
 }

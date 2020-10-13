@@ -27,7 +27,7 @@ void point_to_plane_rigid_matching(
   Eigen::RowVector3d & t)
 {
   // Allowable convergence error
-  double error = 0.1;
+  double error = 10e-9;
   // Build the LS problem
   // Build the A matrix
   Eigen::MatrixXd A(6, 6);
@@ -41,7 +41,7 @@ void point_to_plane_rigid_matching(
   prev_X.setZero();
   current_X = X;
 
-  while ((current_X - prev_X).norm() < error )
+  while ((current_X - prev_X).norm() > error )
   {
     for (int i = 0; i < X.rows(); i++)
     {
@@ -68,7 +68,7 @@ void point_to_plane_rigid_matching(
     AxisAngle(omega_new, theta_new, R);
     
     // Update X
-    prev_X = X;
+    prev_X = current_X;
     for (int j = 0; j < X.rows(); j++)
     {
       current_X.row(j) = (R * current_X.row(j).transpose()).transpose() + t;
