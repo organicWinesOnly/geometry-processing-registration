@@ -10,7 +10,7 @@ void random_points_on_mesh(
   const Eigen::MatrixXi & F,
   Eigen::MatrixXd & X)
 {
-  X.resize(n,3);
+  X.resize(n, 3);
 
   // Build random vector
   Eigen::MatrixXd a_vec = Eigen::MatrixXd::Random(n, 2);
@@ -51,11 +51,21 @@ void random_points_on_mesh(
       }
     }
   }
-  // unifrom sampling of a single triangle
-  Eigen::VectorXd v1 = random_triangle.col(0);
-  Eigen::VectorXd v2 = random_triangle.col(1);
-  Eigen::VectorXd v3 = random_triangle.col(2);
 
-  X = v1.array() + a_vec.col(0).array() * (v2 - v1).array() + a_vec.col(0).array() * (v2 - v1).array();
+  // unifrom sampling of a single triangle
+  Eigen::MatrixXd v1 = random_triangle.block(0, 0, n, 3);
+  Eigen::MatrixXd v2 = random_triangle.block(0, 3, n, 3);
+  Eigen::MatrixXd v3 = random_triangle.block(0, 6, n, 3);
+  Eigen::MatrixXd a1(n, 3);
+  Eigen::MatrixXd a2(n, 3);
+  for (int i = 0; i < 3; i++)
+  {
+    a1.col(i) = a_vec.col(0);
+    a2.col(i) = a_vec.col(1);
+  }
+
+
+  X = v1.array() + a1.array() * (v2 - v1).array() + a2.array() * (v3 - v1).array();
+  // X = v1.array() + (v2 - v1).array();// + a_vec.col(1).array() * (v3 - v1).array();
 }
 
