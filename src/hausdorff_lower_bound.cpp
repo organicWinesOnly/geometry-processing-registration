@@ -9,16 +9,14 @@ double hausdorff_lower_bound(
   const Eigen::MatrixXi & FY,
   const int n)
 {
-  // Build a set of points X
-  Eigen::MatrixXd X(n, 3);
-
-  // Sample mesh
+  // return 0;
+  Eigen::MatrixXd X;
   random_points_on_mesh(n, VX, FX, X);
-  // Find all the distances using point mesh distance function
-  Eigen::VectorXd distance;
-  Eigen::MatrixXd closest_pts;
-  Eigen::MatrixXd norm_matrix;
-  point_mesh_distance(X, VY, FY, distance, closest_pts, norm_matrix);
 
-  return distance.maxCoeff();
+  Eigen::VectorXd D;
+  Eigen::MatrixXd P;
+  Eigen::MatrixXd N;
+  point_mesh_distance(X, VY, FY, D, P, N);
+  double hausdorff_distance = D.maxCoeff();
+  return hausdorff_distance;
 }

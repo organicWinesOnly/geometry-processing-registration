@@ -1,22 +1,22 @@
 #include "point_to_plane_rigid_matching.h"
+#include <iostream>
 #include <cmath>
-#include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <Eigen/LU>
 
-void AxisAngle(
-    Eigen::Vector3d omega,
-    double theta,
+void axis_angle(
+    const double theta,
+    const Eigen::VectorXd w,
     Eigen::Matrix3d & R)
 {
-  Eigen::Matrix3d W = Eigen::Matrix3d::Zero();
-  W(0, 1) = - omega(2);
-  W(0, 2) = omega(1);
-  W(1, 0) = omega(2);
-  W(1, 2) = - omega(0);
-  W(2, 0) = - omega(1);
-  W(2, 1) = omega(0);
+  Eigen::Matrix3d W;
+  W << 0, -1 * w(2), w(1),
+       w(2), 0, -1 * w(0),
+       -1 * w(1), w(0), 0; 
 
-  R = Eigen::Matrix3d::Identity() + std::sin(theta) * W + (1 - std::cos(theta)) * W;
+  Eigen::Matrix3d W_sq = W * W;
+  R = Eigen::Matrix3d::Identity() + sin(theta) * W + (1-cos(theta) ) * W_sq;
+  
 }
 
 void point_to_plane_rigid_matching(
@@ -26,52 +26,33 @@ void point_to_plane_rigid_matching(
   Eigen::Matrix3d & R,
   Eigen::RowVector3d & t)
 {
-  // Allowable convergence error
-  double error = 10e-9;
-  // Build the LS problem
-  // Build the A matrix
-  Eigen::MatrixXd A(6, 6);
-  Eigen::VectorXd b(6);
-  A.setZero();
-  b.setZero();
-
-  Eigen::MatrixXd prev_X;
-  Eigen::MatrixXd current_X;
-  prev_X.resizeLike(X);
-  prev_X.setZero();
-  current_X = X;
-
-  while ((current_X - prev_X).norm() > error )
+  // create the A matrix and b vector
+  Eigen::MatrixXd A = Eigen::MatrixXd::Zero(6, 6);
+  Eigen::VectorXd b = Eigen::VectorXd::Zero(6);
+  for (int i = 0; i < X.rows(); i++)
   {
-    for (int i = 0; i < X.rows(); i++)
+    Eigen::Vector3d x = X.row(i);
+    Eigen::Vector3d n = N.row(i);
+    Eigen::VectorXd help_vector(6);
+    help_vector.head(3)= x.cross(n);
+    help_vector.tail(3)= N.row(i);
+    b += help_vector * (N.row(i) * (P.row(i) - X.row(i) ).transpose() );
+    for (int j = 0; j < 6; j++)
     {
-      Eigen::VectorXd temp_vec(6);
-      Eigen::RowVector3d x_i = current_X.row(i);
-      Eigen::RowVector3d n_i = N.row(i);
-
-      temp_vec.head(3) = x_i.transpose().cross(n_i.transpose());
-      temp_vec.tail(3) = n_i.transpose();
-      Eigen::Vector3d diff = (P.row(i) - x_i).transpose();
-
-      A += temp_vec * temp_vec.transpose();
-      b += temp_vec * N.row(i) * diff;
-    }
-
-    // Solve least squares
-    Eigen::VectorXd u(6);
-    u = A.bdcSvd(Eigen::ComputeFullU| Eigen::ComputeFullV).solve(b);
-
-    // Update parameters
-    t = u.tail(3).transpose();
-    double theta_new = u.head(3).norm();
-    Eigen::Vector3d omega_new = u.head(3) / theta_new;
-    AxisAngle(omega_new, theta_new, R);
-    
-    // Update X
-    prev_X = current_X;
-    for (int j = 0; j < X.rows(); j++)
-    {
-      current_X.row(j) = (R * current_X.row(j).transpose()).transpose() + t;
+      A.row(j) += help_vector(j) * help_vector.transpose();
     }
   }
+  // solve Au = b for u in R^6
+  Eigen::VectorXd u = A.inverse() * b;
+  // the translation vector is given by t = (u[3], u[4], u[5])
+  t = u.tail(3).transpose();
+  // use the first 3 entries of u, the vector a, to compute the theta 
+  Eigen::Vector3d a = u.head(3);
+  // theta value and the w vector:
+  //     theta = ||a||
+  //     \hat{w} = a / ||a||
+  double theta = a.norm();
+  Eigen::Vector3d w = a / theta;
+  // Then R will be given by axis_angle(theta, \hat{w})
+  axis_angle(theta, w, R);
 }

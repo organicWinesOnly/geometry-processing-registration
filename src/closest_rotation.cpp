@@ -1,21 +1,24 @@
 #include "closest_rotation.h"
-#include <Eigen/LU>
-#include <Eigen/SVD>
+#include <Eigen/Dense>
+#include <cassert>
 
 void closest_rotation(
   const Eigen::Matrix3d & M,
   Eigen::Matrix3d & R)
 {
-  // Find the SVD of M
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  Eigen::MatrixXd UV = svd.matrixU() * svd.matrixV().transpose();
+  // R = Eigen::Matrix3d::Identity();
+  Eigen::JacobiSVD<Eigen::Matrix3d> M_svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::Matrix3d U = M_svd.matrixU();
+  Eigen::Matrix3d V_T = M_svd.matrixV();  // returns the transpose of V
+  int det_uv = (U * V_T).determinant();
+  //assert(det_uv == 1 || det_uv == -1);
 
-  // compute the special matrix omega
-  double omega_0;
-  omega_0 = UV.determinant();
-  Eigen::Matrix3d omega = Eigen::Matrix3d::Identity();
-  omega(2, 2) = omega_0;
+  Eigen::Matrix3d Q;
+  Q = Eigen::Matrix3d::Identity();
+  if (det_uv < 0)
+  {
+    Q(2, 2) = -1;
+  }
 
-  // Solve for R
-  R = (svd.matrixU() * omega * svd.matrixV().transpose()).eval();
+  R = U * Q * V_T;
 }

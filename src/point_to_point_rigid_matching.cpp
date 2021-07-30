@@ -7,26 +7,32 @@ void point_to_point_rigid_matching(
   Eigen::Matrix3d & R,
   Eigen::RowVector3d & t)
 {
-  // Compute centroid
-  Eigen::RowVector3d p_centroid = P.colwise().sum() / P.rows();
-  Eigen::RowVector3d x_centroid = X.colwise().sum() / X.rows();
+  //R = Eigen::Matrix3d::Identity();
+  //t = Eigen::RowVector3d::Zero();
+  // find the centroids of P an X
+  Eigen::Vector3d p_centroid;
+  Eigen::Vector3d x_centroid;
 
-  // Compute centoid distance matrix for X and P
-  Eigen::MatrixXd p_bar(X.rows(), 3);
-  Eigen::MatrixXd x_bar(X.rows(), 3);
-  for (int i = 0; i < X.rows(); i++)
-  {
-    p_bar.row(i) = P.row(i) - p_centroid;
-    x_bar.row(i) = X.row(i) - x_centroid;
-  }
+  Eigen::VectorXd ones = Eigen::VectorXd::Ones(X.rows());
+  double normalize_factor = ones.transpose() * ones;
   
-  // Compute covarience, M
-  Eigen::Matrix3d M = p_bar.transpose() * x_bar;
+  p_centroid = P.transpose() * ones;
+  x_centroid = X.transpose() * ones;
 
-  // Use closesnt relation function to compute the optimal R
-  closest_rotation(M, R);
+  x_centroid = x_centroid / normalize_factor;
+  p_centroid = p_centroid / normalize_factor;
 
-  // Calculate the optimal t
-  t = p_centroid - (R * x_centroid.transpose()).transpose();
+  Eigen::MatrixXd P_mean = P;
+  Eigen::MatrixXd X_mean = X;
+  for (int i = 0; i < X.cols(); i++)
+  {
+    P_mean.col(i) = P_mean.col(i).array() - p_centroid(i); 
+    X_mean.col(i) = X_mean.col(i).array() - x_centroid(i); 
+  }
+
+  Eigen::Matrix3d covarience_matrix = P_mean.transpose() * X_mean;
+  closest_rotation(covarience_matrix, R);
+
+  t = (p_centroid - R * x_centroid).transpose();
 }
 

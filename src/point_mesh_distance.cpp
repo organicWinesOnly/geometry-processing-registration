@@ -1,8 +1,16 @@
 #include "point_mesh_distance.h"
+#include "point_triangle_distance.h"
 #include "igl/per_face_normals.h"
-#include <cmath>
-#include <iostream>
 
+
+// idea
+// iterate over the points in x
+// iterate over the faces in FY
+// run point to triangle distance, keeping only the smallest distance
+// 	ensure that you keep track of (the distance, closest pt, and face of the
+// 	smallest distance)
+// add distance, position to closest pt to D and P respectively
+// compute the normal and add it to M
 void point_mesh_distance(
   const Eigen::MatrixXd & X,
   const Eigen::MatrixXd & VY,
@@ -11,33 +19,39 @@ void point_mesh_distance(
   Eigen::MatrixXd & P,
   Eigen::MatrixXd & N)
 {
-  N.resizeLike(X);
-  P.resizeLike(X);
+  Eigen::MatrixXd Normals;
+  igl::per_face_normals(VY, FY, Normals);
   D.resize(X.rows());
-  Eigen::RowVector3d z;
-  z.fill(1 / std::sqrt(3));
-  Eigen::MatrixXd normals(FY.rows(), 3);
+  P.resize(X.rows(), 3);
+  N.resize(X.rows(), 3);
 
-  // Find the normals of the every face in the mesh
-  igl::per_face_normals(VY, FY, z, normals);
-
-  // find the projected points
-  Eigen::MatrixXd x_projections(normals.rows(), X.rows());
-  x_projections = normals * X.transpose();
-
-  // Find the closest face to each point in X
   for (int i = 0; i < X.rows(); i++)
   {
-    int *idx;
-    int index;
+    double shortest_d = 0;
+    Eigen::RowVector3d position;
+    int face_idx;
 
-    idx = &index;
-    double max_proj;
-    max_proj = x_projections.col(i).maxCoeff(idx);
-    N.row(i) = normals.row(*idx);
-    P.row(i) =  max_proj * normals.row(*idx);
+    for (int j = 0; j < FY.rows(); j++)
+    {
+      double d;
+      Eigen::RowVector3d p;
+      point_triangle_distance(X.row(i), VY.row(FY(j,0)), 
+                              VY.row(FY(j, 1)), VY.row(FY(j, 2)), d, p);
+      if (j==0)
+      {
+        shortest_d = d;
+        position = p;
+        face_idx = j;
+      }
+      else if (j != 0 && shortest_d > d)
+      {
+        shortest_d = d;
+        position = p;
+        face_idx = j;
+      }
+    }
+    D(i) = shortest_d;
+    P.row(i) = position;
+    N.row(i) = Normals.row(face_idx);
   }
-
-  // distance calculation
-  D = (X - P).rowwise().norm();
 }

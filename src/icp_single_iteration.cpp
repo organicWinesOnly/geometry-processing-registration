@@ -14,26 +14,24 @@ void icp_single_iteration(
   Eigen::Matrix3d & R,
   Eigen::RowVector3d & t)
 {
-  // Build closest points matrix
-  Eigen::MatrixXd P;
-  // Build Normal matrix
-  Eigen::MatrixXd N;
-  // Build distance matrix
-  Eigen::VectorXd D;
-  // Build sample matrix
+  //  sample VX and FX
   Eigen::MatrixXd X;
-
-  // Sample mesh
   random_points_on_mesh(num_samples, VX, FX, X);
-  // Project onto mesh
-  point_mesh_distance(X, VY, FY, D, P, N);
-  // Update R and t
-  if (method == ICP_METHOD_POINT_TO_POINT)
-  {
-    point_to_point_rigid_matching(X, P, R, t);
-  } else
-  {
-    point_to_plane_rigid_matching(X, P, N, R, t);
-  }
 
+  // Find closest pt on the target mesh
+  Eigen::VectorXd D;
+  Eigen::MatrixXd P;
+  Eigen::MatrixXd N;
+  // TODO fix mesh distance calculation
+  point_mesh_distance(X, VY, FY, D, P, N);
+
+  switch (method)
+  {
+    case ICP_METHOD_POINT_TO_POINT:
+      point_to_point_rigid_matching(X, P, R, t);
+      break;
+    case ICP_METHOD_POINT_TO_PLANE:
+      point_to_plane_rigid_matching(X, P, N, R, t);
+      break;
+  }
 }
