@@ -1,6 +1,7 @@
 #include "point_mesh_distance.h"
 #include "point_triangle_distance.h"
 #include "igl/per_face_normals.h"
+#include <cmath>
 
 
 // idea
@@ -27,7 +28,7 @@ void point_mesh_distance(
 
   for (int i = 0; i < X.rows(); i++)
   {
-    double shortest_d = 0;
+    double shortest_d = INFINITY;
     Eigen::RowVector3d position;
     int face_idx;
 
@@ -43,7 +44,7 @@ void point_mesh_distance(
         position = p;
         face_idx = j;
       }
-      else if (j != 0 && shortest_d > d)
+      else if (shortest_d > d)
       {
         shortest_d = d;
         position = p;

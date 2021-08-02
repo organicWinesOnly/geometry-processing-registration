@@ -6,7 +6,6 @@ void closest_rotation(
   const Eigen::Matrix3d & M,
   Eigen::Matrix3d & R)
 {
-  // R = Eigen::Matrix3d::Identity();
   Eigen::JacobiSVD<Eigen::Matrix3d> M_svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
   Eigen::Matrix3d U = M_svd.matrixU();
   Eigen::Matrix3d V_T = M_svd.matrixV();  // returns the transpose of V
