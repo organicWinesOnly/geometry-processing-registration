@@ -36,3 +36,5 @@ build/*
 solution/*.cpp
 .backup/
 papers/
+*.ipynb_checkpoints/
+*ipynb
